@@ -12,18 +12,12 @@ from langchain.docstore.document import Document
 # ✅ Use PersistentClient without specifying Settings
 chroma_client = chromadb.PersistentClient(path="db")  # ChromaDB automatically manages DB selection
 
-st.title("RAG-based Q&A Chatbot with Ollama")
-
-uploaded_file = st.file_uploader("Upload a document", type=["pdf", "txt"])
-
-if uploaded_file is not None:
+def process_document(uploaded_file, user_question):
     file_extension = uploaded_file.name.split(".")[-1].lower()
     file_path = os.path.join("uploaded." + file_extension)
 
     with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-
-    st.success(f"File saved as {file_path}")
+        f.write(uploaded_file.read())
 
     docs = []
     if file_extension == "pdf":
@@ -44,7 +38,6 @@ if uploaded_file is not None:
         persist_directory="db"
     )
     vector_store.persist()
-    st.success("Document successfully indexed into ChromaDB!")
 
     llm = Ollama(model="llama3.2")
 
@@ -55,8 +48,25 @@ if uploaded_file is not None:
     # Create the RAG-based Q&A chain
     qa_chain = create_rag()
 
-    user_question = st.text_input("Ask a question about the document:")
     if user_question:
         response = qa_chain.run(user_question)
-        st.write("### Answer:")
-        st.write(response)
+        return response
+    else:
+        return "Please ask a question about the document."
+
+# Streamlit UI
+st.title("RAG-based Q&A Chatbot with Ollama")
+st.markdown("Upload a PDF or TXT document and ask a question. The system will search for answers based on the content of the document.")
+
+# File uploader
+uploaded_file = st.file_uploader("Upload Document (PDF/TXT)", type=["pdf", "txt"])
+
+# Textbox for asking questions
+user_question = st.text_input("Ask a question about the document:")
+
+if uploaded_file and user_question:
+    response = process_document(uploaded_file, user_question)
+    st.write("### Answer:")
+    st.write(response)
+elif uploaded_file:
+    st.write("Please enter a question to get answers from the document.")
