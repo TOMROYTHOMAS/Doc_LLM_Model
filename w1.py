@@ -9,9 +9,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader, TextLoader
 from langchain.docstore.document import Document
 
-
-chroma_client = chromadb.PersistentClient(path="db")
-
+# ✅ Use ChromaDB with PersistentClient (avoiding SQLite issues)
+chroma_client = chromadb.PersistentClient(path="db")  
 
 st.title("RAG-based Q&A Chatbot with Ollama")
 
@@ -21,7 +20,6 @@ if uploaded_file is not None:
     file_extension = uploaded_file.name.split(".")[-1].lower()
     file_path = os.path.join("uploaded." + file_extension)
 
-    
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
@@ -39,11 +37,14 @@ if uploaded_file is not None:
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     split_docs = text_splitter.split_documents(docs)
 
-    # Create a vector store from documents
-    vector_store = Chroma.from_documents(split_docs, HuggingFaceEmbeddings(), persist_directory="db")
+    # ✅ Ensure ChromaDB persists data properly
+    vector_store = Chroma.from_documents(
+        split_docs,
+        HuggingFaceEmbeddings(),
+        persist_directory="db"  # ✅ Ensures ChromaDB saves data properly
+    )
     vector_store.persist()
     st.success("Document successfully indexed into ChromaDB!")
-
 
     llm = Ollama(model="llama3.2")
 
